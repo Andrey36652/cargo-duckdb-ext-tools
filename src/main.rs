@@ -1,22 +1,22 @@
-//! Main entry point for cargo-duckdb-ext-tools
+//! Main entry point for the cargo-duckdb-ext command line tool
 //!
-//! This binary provides two cargo subcommands:
-//! - `duckdb-ext-pack`: Appends DuckDB extension metadata to dynamic libraries
-//! - `duckdb-ext-build`: Builds and packages DuckDB extensions in one step
+//! This module handles command line argument parsing and dispatches
+//! to the appropriate subcommand implementation.
 
-mod builder;
-mod error;
-mod fs;
-mod logger;
-mod packer;
-mod task;
+use cargo_duckdb_ext_tools::commands::Command;
+use cargo_duckdb_ext_tools::error::ToolsError;
+use cargo_duckdb_ext_tools::options::Options;
+use clap::Parser;
+use std::env::args;
 
-use crate::task::Task;
-use anyhow::Result;
-
-/// Main entry point that delegates to the appropriate task based on command line arguments
-fn main() -> Result<()> {
-    let task = Task::new();
+fn main() -> Result<(), ToolsError> {
+    let args = args().into_iter()
+        .enumerate()
+        .filter(|(index, argument)| *index != 1 || argument != "duckdb-ext")
+        .map(|(_, argument)| argument)
+        .collect::<Vec<_>>();
+    let options: Options = Options::parse_from(args);
+    let mut task: Box<dyn Command> = options.try_into()?;
     task.execute()?;
     Ok(())
 }

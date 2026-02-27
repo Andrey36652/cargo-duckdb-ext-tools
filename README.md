@@ -1,95 +1,25 @@
 # cargo-duckdb-ext-tools
 
 [![Crates.io](https://img.shields.io/crates/v/cargo-duckdb-ext-tools.svg)](https://crates.io/crates/cargo-duckdb-ext-tools)
-[![Documentation](https://docs.rs/cargo-duckdb-ext-tools/badge.svg)](https://docs.rs/cargo-duckdb-ext-tools)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Rust](https://img.shields.io/badge/rust-1.93%2B-blue.svg)](https://www.rust-lang.org)
 
-A Rust-based toolkit for building and packaging DuckDB extensions without Python dependencies. Provides two cargo subcommands that streamline the development workflow for Rust-based DuckDB extensions.
+A comprehensive Cargo plugin for developing, building, and packaging DuckDB extensions in pure Rust. Eliminates Python dependencies and provides a seamless workflow for Rust developers.
 
 ## 🚀 Overview
 
-DuckDB extensions are dynamic libraries (`.dylib`/`.so`/`.dll`) with a 534-byte metadata footer appended to the file. The official DuckDB Rust extension template relies on a Python script (`append_extension_metadata.py`) to add this metadata, requiring developers to maintain both Rust and Python environments.
+DuckDB extensions are dynamic libraries (`.dylib`/`.so`/`.dll`) with a 534-byte metadata footer appended to the file. The official DuckDB Rust extension template relies on Python scripts for metadata appending, requiring developers to maintain both Rust and Python environments.
 
-This project eliminates the Python dependency by providing native Rust tooling that integrates seamlessly with cargo workflows.
+**cargo-duckdb-ext-tools** solves this by providing native Rust tooling that integrates seamlessly with Cargo workflows, offering three essential subcommands for the complete extension development lifecycle.
 
-### ✨ Features
+### ✨ Key Features
 
-- **Zero Python Dependencies**: Pure Rust implementation
-- **Cargo-Native Integration**: Seamless integration with existing Rust workflows
-- **Intelligent Defaults**: Automatic parameter inference from Cargo metadata
-- **Cross-Platform Support**: Native and cross-compilation support
-- **Two Tools**: Both low-level and high-level packaging options
-
-### 💡 Use Cases
-
-- Developing DuckDB extensions purely in Rust
-- Automating extension packaging in CI/CD pipelines
-- Cross-platform extension builds without platform-specific tooling
-- Simplifying DuckDB extension development workflows
-
-## 🛠️ Tools Provided
-
-### 1. `cargo-duckdb-ext-pack`
-
-A lower-level tool that appends DuckDB extension metadata to an existing dynamic library file. This is a direct replacement for the Python `append_extension_metadata.py` script.
-
-#### Required Parameters
-- `-i, --library-path`: Input dynamic library path
-- `-o, --extension-path`: Output extension file path
-- `-v, --extension-version`: Extension version (e.g., `v1.0.0`)
-- `-p, --duckdb-platform`: Target platform (e.g., `osx_arm64`, `linux_amd64`)
-- `-d, --duckdb-version`: DuckDB version (e.g., `v1.4.2`)
-
-#### Optional Parameters
-- `-a, --abi-type`: ABI type (default: `C_STRUCT_UNSTABLE`)
-- `-q, --quiet`: Suppress output
-
-#### Example
-```bash
-cargo duckdb-ext-pack \
-  -i target/release/librusty_sheet.dylib \
-  -o rusty_sheet.duckdb_extension \
-  -v v0.4.0 \
-  -p osx_arm64 \
-  -d v1.4.2
-```
-
-### 2. `cargo-duckdb-ext-build`
-
-A high-level tool that combines building and packaging in one step with intelligent defaults.
-
-#### All Parameters Optional
-- `-m, --manifest-path`: Path to Cargo.toml
-- `-o, --extension-path`: Output extension file path
-- `-v, --extension-version`: Extension version
-- `-p, --duckdb-platform`: Target platform
-- `-d, --duckdb-version`: DuckDB version
-- `-a, --abi-type`: ABI type (default: `C_STRUCT_UNSTABLE`)
-- `-q, --quiet`: Suppress output
-- Arguments after `--`: Passed to `cargo build`
-
-#### Intelligent Defaults
-
-The tool automatically extracts build information using `cargo build --message-format=json` and derives:
-
-1. **Library path**: From compiler artifacts with `cdylib` target kind
-2. **Extension path**: `<project-name>.duckdb_extension` in the same directory as the library
-3. **Extension version**: From the project's `Cargo.toml` version field
-4. **Platform**:
-   - From target triple (for cross-compilation)
-   - From host architecture (for native builds)
-5. **DuckDB version**: From `duckdb` or `libduckdb-sys` dependency version
-
-#### Example
-```bash
-cargo duckdb-ext-build -- --release --target x86_64-unknown-linux-gnu
-```
-
-This executes:
-1. `cargo build --release --target x86_64-unknown-linux-gnu`
-2. `cargo duckdb-ext-pack` with auto-detected parameters
-
-Output: `target/x86_64-unknown-linux-gnu/release/<project-name>.duckdb_extension`
+- **Zero Non-Rust Dependencies**: Pure Rust implementation, no Python or external tools required
+- **Complete Development Workflow**: `new` → `build` → `package` in one cohesive tool
+- **Intelligent Defaults**: Automatic parameter inference from Cargo metadata and build artifacts
+- **Cross-Platform Support**: Native builds and cross-compilation for all major platforms
+- **Professional Logging**: Cargo-compatible output format with color support
+- **ABI Version Support**: Both stable (`C_STRUCT`) and unstable (`C_STRUCT_UNSTABLE`) ABI types
 
 ## 📦 Installation
 
@@ -97,40 +27,133 @@ Output: `target/x86_64-unknown-linux-gnu/release/<project-name>.duckdb_extension
 cargo install cargo-duckdb-ext-tools
 ```
 
-## 🚀 Quick Start
+The tool installs as `cargo-duckdb-ext` and provides three subcommands: `new`, `build`, and `package`.
 
-### For Most Projects
+## 🚀 Complete Workflow Example
 
-Simply use:
+Here's a complete example from project creation to running the extension in DuckDB:
+
 ```bash
-cargo duckdb-ext-build -- --release
+# 1. Create a new extension project
+cargo duckdb-ext new quack
+
+# 2. Enter the project directory
+cd quack
+
+# 3. Build and package the extension
+cargo duckdb-ext build -- --release
+
+# 4. The extension is now ready at:
+# target/release/quack.duckdb_extension
+
+# 5. Load and test the extension in DuckDB
+duckdb -unsigned -c "load 'target/release/quack.duckdb_extension'; from quack('Joe')"
 ```
 
-### Cross-compilation
-
-```bash
-cargo duckdb-ext-build -- --release --target aarch64-unknown-linux-gnu
+**Expected output:**
+```
+┌───────────────┐
+│     🐥       │
+│   varchar     │
+├───────────────┤
+│ Hello Joe     │
+└───────────────┘
 ```
 
-### Custom Parameters
+This creates a table function extension that returns "Hello {name}" for any input name.
 
-Override defaults when needed:
+## 🛠️ Subcommands
+
+### 1. `cargo duckdb-ext new` - Create New Extension Projects
+
+Creates a complete DuckDB extension project with proper configuration and template code.
+
 ```bash
-cargo duckdb-ext-build \
-  -v v2.0.0 \
-  -p linux_amd64_gcc4 \
-  -- --release
+cargo duckdb-ext new [OPTIONS] <PATH>
+```
+
+#### Basic Usage
+```bash
+# Create a table function extension (default)
+cargo duckdb-ext new my-extension
+
+# Create a scalar function extension
+cargo duckdb-ext new --scalar my-scalar-extension
+```
+
+#### Key Options
+- `--table` / `--scalar`: Choose function type (table function is default)
+- `--name <NAME>`: Set package name (defaults to directory name)
+- `--edition <YEAR>`: Rust edition (2015, 2018, 2021, 2024)
+- `--vcs <VCS>`: Version control system (git, hg, pijul, fossil, none)
+
+#### What It Creates
+- Complete Cargo project with `cdylib` configuration
+- DuckDB dependencies (`duckdb`, `libduckdb-sys`, `duckdb-ext-macros`)
+- Template code for table or scalar functions
+- Release profile optimizations (LTO, strip)
+
+### 2. `cargo duckdb-ext build` - Build and Package Extensions
+
+The high-level command that combines compilation and packaging with intelligent defaults.
+
+```bash
+cargo duckdb-ext build [OPTIONS] [-- <CARGO_BUILD_ARGS>...]
+```
+
+#### Basic Usage
+```bash
+# Build with release optimizations
+cargo duckdb-ext build -- --release
+
+# Cross-compile for Linux from macOS
+cargo duckdb-ext build -- --release --target x86_64-unknown-linux-gnu
+```
+
+#### Intelligent Defaults
+The tool automatically detects:
+- **Library path**: From `cdylib` artifacts in build output
+- **Extension path**: `<package-name>.duckdb_extension` next to the library
+- **Extension version**: From `Cargo.toml` version field (prefixed with "v")
+- **Platform**: From target triple or host system
+- **DuckDB version**: From `duckdb` or `libduckdb-sys` dependency
+
+#### Key Options
+- `-m, --manifest-path`: Path to `Cargo.toml`
+- `-o, --extension-path`: Override output extension path
+- `-v, --extension-version`: Override extension version
+- `-p, --duckdb-platform`: Override target platform
+- `-d, --duckdb-version`: Specify DuckDB version
+- `-a, --duckdb-capi-version`: Specify DuckDB C API version (enables stable ABI)
+
+### 3. `cargo duckdb-ext package` - Package Existing Libraries
+
+Low-level command to append DuckDB metadata to an existing dynamic library.
+
+```bash
+cargo duckdb-ext package --library-path <LIB> --extension-path <OUTPUT> \
+  --extension-version <VERSION> --duckdb-platform <PLATFORM> \
+  (--duckdb-version <VERSION> | --duckdb-capi-version <VERSION>)
+```
+
+#### Example
+```bash
+cargo duckdb-ext package \
+  -i target/release/libmy_extension.dylib \
+  -o my_extension.duckdb_extension \
+  -v v1.0.0 \
+  -p osx_arm64 \
+  -d v1.4.2
 ```
 
 ## 🌍 Platform Support
 
-Tested on:
-- macOS (Apple Silicon and Intel)
-- Linux (x86_64, aarch64)
-- Windows (via cross-compilation)
+### Supported Platforms
+- **macOS**: Apple Silicon (arm64) and Intel (x86_64)
+- **Linux**: x86_64, aarch64, x86, arm
+- **Windows**: x86_64, x86 (via cross-compilation)
 
 ### Platform Mapping
-
 The tool automatically maps Rust target triples to DuckDB platform identifiers:
 
 | Rust Target Triple | DuckDB Platform |
@@ -140,19 +163,92 @@ The tool automatically maps Rust target triples to DuckDB platform identifiers:
 | `x86_64-unknown-linux-gnu` | `linux_amd64` |
 | `aarch64-unknown-linux-gnu` | `linux_arm64` |
 | `x86_64-pc-windows-msvc` | `windows_amd64` |
+| `i686-pc-windows-msvc` | `windows_amd` |
+
+## 🔧 Technical Details
+
+### ABI Types
+- **`C_STRUCT_UNSTABLE`**: Default for extensions built against DuckDB version
+- **`C_STRUCT`**: Used when `--duckdb-capi-version` is specified (stable ABI)
+
+### Metadata Structure
+The 534-byte footer includes:
+1. Start signature (22 bytes)
+2. 3 reserved fields (96 bytes)
+3. ABI type (32 bytes)
+4. Extension version (32 bytes)
+5. DuckDB/C API version (32 bytes)
+6. Platform identifier (32 bytes)
+7. Magic version "4" (32 bytes)
+8. 8 signature padding fields (256 bytes)
+
+### Build Integration
+The `build` subcommand uses `cargo build --message-format=json` to:
+1. Execute the build with user-provided arguments
+2. Parse JSON output to find `cdylib` artifacts
+3. Extract package metadata from Cargo.toml
+4. Apply intelligent defaults for missing parameters
+5. Create and execute packaging commands
+
+## 📚 Project Structure
+
+```
+src/
+├── main.rs              # CLI entry point
+├── lib.rs               # Library exports
+├── error.rs             # Error types
+├── logging.rs           # Cargo-compatible logging
+├── helpers.rs           # File system utilities
+├── commands/            # Subcommand implementations
+│   ├── mod.rs          # Command trait and dispatch
+│   ├── new_command.rs  # Project creation
+│   ├── build_command.rs # Build and package
+│   └── package_command.rs # Metadata appending
+└── options/             # CLI option parsing
+    ├── mod.rs          # Top-level options
+    ├── new_option.rs   # New command options
+    ├── build_option.rs # Build command options
+    └── package_option.rs # Package command options
+```
+
+## 🧪 Testing
+
+```bash
+# Build the tool in development mode
+cargo build
+
+# Run tests
+cargo test
+
+# Install locally for testing
+cargo install --path .
+```
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## 🆘 Support
 
-For questions or issues:
-- **GitHub Issues**: https://github.com/redraiment/cargo-duckdb-ext-tools/issues
+- **GitHub Issues**: [https://github.com/redraiment/cargo-duckdb-ext-tools/issues](https://github.com/redraiment/cargo-duckdb-ext-tools/issues)
 - **Email**: Zhang, Zepeng <redraiment@gmail.com>
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) file for full license text.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
-- DuckDB team for the excellent extension system
-- Rust community for the amazing tooling ecosystem
-- Contributors and users of this project
+- The DuckDB team for creating an excellent database and extension system
+- The Rust community for the amazing tooling ecosystem
+- All contributors and users of this project
+
+---
+
+**cargo-duckdb-ext-tools** makes DuckDB extension development in Rust a first-class experience, eliminating external dependencies and providing a seamless workflow from project creation to packaged extension.

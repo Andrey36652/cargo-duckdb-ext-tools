@@ -10,7 +10,7 @@ use thiserror::Error;
 /// This enum encapsulates all possible error scenarios that can occur
 /// during extension building and packaging operations.
 #[derive(Error, Debug)]
-pub(super) enum ToolsError {
+pub enum ToolsError {
     /// Wraps I/O errors that occur during file operations
     #[error("{0}")]
     IoError(#[from] std::io::Error),

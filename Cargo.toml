@@ -1,6 +1,6 @@
 [package]
 name = "cargo-duckdb-ext-tools"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2024"
 authors = ["Zhang, Zepeng <redraiment@gmail.com>"]
 description = "A cargo subcommand that packages DuckDB extensions by appending the required extension metadata to a compiled dynamic library."
@@ -17,11 +17,7 @@ include = [
 ]
 
 [[bin]]
-name = "cargo-duckdb-ext-build"
-path = "src/main.rs"
-
-[[bin]]
-name = "cargo-duckdb-ext-pack"
+name = "cargo-duckdb-ext"
 path = "src/main.rs"
 
 [profile.release]
@@ -29,9 +25,11 @@ lto = true
 strip = true
 
 [dependencies]
-anyhow = "1.0.100"
+anstream = "1.0.0"
+anstyle = "1.0.13"
 cargo_metadata = "0.23.1"
-clap = { version = "4.5.53", features = ["derive"] }
-serde_json = "1.0.145"
-target-lexicon = "0.13.3"
-thiserror = "2.0.17"
+clap = { version = "4.5.60", features = ["derive"] }
+heck = "0.5.0"
+serde_json = "1.0.149"
+target-lexicon = "0.13.5"
+thiserror = "2.0.18"
